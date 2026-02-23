@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Echoes of the Bell</title>
+
+<style>
+body {
+  background: radial-gradient(circle, #0f2027, #203a43, #2c5364);
+  color: #f0f0f0;
+  font-family: "Trebuchet MS", sans-serif;
+  text-align: center;
+  padding: 20px;
+}
+
+#game {
+  border: 2px solid #aaa;
+  border-radius: 12px;
+  padding: 25px;
+  max-width: 760px;
+  margin: 40px auto;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+#log {
+  max-height: 260px;
+  overflow-y: auto;
+  text-align: left;
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.neutral { color: #ffd966; }
+.safe { color: #4cff9f; }
+.danger { color: #ff4c4c; font-weight: bold; }
+.phase { color: #8ecae6; font-weight: bold; }
+
+button {
+  padding: 10px 24px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+/* ---------- MIRROR OVERLAY ---------- */
+#mirrorOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.75);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+#mirrorBox {
+  background: #0f2027;
+  border: 2px solid #8ecae6;
+  border-radius: 12px;
+  padding: 25px 35px;
+  text-align: center;
+  max-width: 400px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🌀Reflexia🌀</h1>
+<p>Learn the signals, for trusting the wrong instinct will end you.</p>
+<p>In distant bell echoes and the howling of creatures you can't bear yourself to imagine, lies the realm of Reflexia.</p>
+<p>You are trapped in the maze-like canyon of this broken world, far from civilization...have fun!</p>
+<p>Welcome to my classic conditioning game! ~ Marie Roy and ChatGPT</p>
+
+<div id="game">
+  <p><strong>H = Hide &nbsp;&nbsp; R = Run &nbsp;&nbsp; I = Interact</strong></p>
+  <button onclick="startGame()">Begin Trial</button>
+  <div id="log"></div>
+</div>
+
+<div id="mirrorOverlay">
+  <div id="mirrorBox">
+    <p><strong>Reflexia awaits.</strong></p>
+    <p>Do you really want to leave?</p>
+    <button onclick="mirrorAnswer(true)">Yes</button>
+    <button onclick="mirrorAnswer(false)">No</button>
+  </div>
+</div>
+
+<script>
+let phase = 1;
+let alive = true;
+let trialActive = false;
+
+let hiding = false;
+let running = false;
+let responded = false;
+
+let freezeCount = 0;
+
+let phase1Correct = 0;
+let phase2Correct = 0;
+let phase3Bell = 0;
+let phase3Howl = 0;
+
+let mirrorUnlocked = false;
+let responseTimer = null;
+
+/* ---------- INPUT ---------- */
+document.addEventListener("keydown", e => {
+  const key = e.key.toLowerCase();
+
+  if (key === "i" && mirrorUnlocked) {
+    mirrorChoice();
+    return;
+  }
+
+  if (!trialActive) return;
+
+  if (key === "h") {
+    hiding = true;
+    running = false;
+    responded = true;
+    log("You hide.", "neutral");
+  }
+
+  if (key === "r") {
+    running = true;
+    hiding = false;
+    responded = true;
+    log("You run through the maze.", "neutral");
+  }
+});
+
+/* ---------- CORE ---------- */
+function log(msg, cls="") {
+  const logDiv = document.getElementById("log");
+  const p = document.createElement("p");
+  p.className = cls;
+  p.textContent = msg;
+  logDiv.appendChild(p);
+  logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+function startGame() {
+  document.getElementById("log").innerHTML = "";
+  phase = 1;
+  alive = true;
+  trialActive = true;
+  mirrorUnlocked = false;
+  freezeCount = 0;
+
+  phase1Correct = 0;
+  phase2Correct = 0;
+  phase3Bell = 0;
+  phase3Howl = 0;
+
+  log("Phase One begins. The canyon listens.", "phase");
+  nextEvent();
+}
+
+function nextEvent() {
+  if (!alive) return;
+
+  hiding = false;
+  running = false;
+  responded = false;
+
+  setTimeout(() => {
+    if (phase === 1) bellStimulus();
+    else if (phase === 2) howlStimulus();
+    else phase3Stimulus();
+  }, 1200);
+}
+
+/* ---------- STIMULI ---------- */
+function bellStimulus() {
+  log("🔔 A distant bell echoes...", "neutral");
+  waitForResponse(() => {
+    if (hiding) {
+      phase1Correct++;
+      log("Arrows fall — you are safe.", "safe");
+      if (phase1Correct >= 3) {
+        phase = 2;
+        log("Phase One of the Trial is complete.", "phase");
+        log("The rules you learned no longer protect you.", "phase");
+      }
+      nextEvent();
+    } else {
+      fail("Arrows strike you from above.");
+    }
+  });
+}
+
+function howlStimulus() {
+  log("🐺 A distant howl drifts through the shadows...", "neutral");
+  waitForResponse(() => {
+    if (!hiding && responded) {
+      phase2Correct++;
+      log("The creature passes you by.", "safe");
+      if (phase2Correct >= 4) {
+        phase = 3;
+        log("Phase Two of the Trial is complete.", "phase");
+        log("Phase Three begins. Conflicting signals surround you.", "phase");
+      }
+      nextEvent();
+    } else {
+      fail("It has come for you.");
+    }
+  });
+}
+
+function phase3Stimulus() {
+  const stimulus = Math.random() < 0.5 ? "bell" : "howl";
+
+  if (stimulus === "bell") {
+    log("🔔 The bell rings nearby.", "neutral");
+  } else {
+    log("🐺 A howl echoes behind you.", "neutral");
+  }
+
+  waitForResponse(() => {
+    if (stimulus === "bell" && hiding) {
+      phase3Bell++;
+      log("You hid at the right moment.", "safe");
+    } else if (stimulus === "howl" && running) {
+      phase3Howl++;
+      log("You outrun what lurks in the dark.", "safe");
+    } else {
+      fail("You reacted incorrectly.");
+      return;
+    }
+
+    if (phase3Bell >= 3 && phase3Howl >= 3) {
+      mirrorUnlocked = true;
+      trialActive = false;
+      log("A mirror appears at the end of the maze.", "phase");
+      log("Press I to interact.", "phase");
+    } else {
+      nextEvent();
+    }
+  });
+}
+
+/* ---------- RESPONSE HANDLING ---------- */
+function waitForResponse(callback) {
+  clearTimeout(responseTimer);
+
+  responseTimer = setTimeout(() => {
+    if (!responded) {
+      freezeCount++;
+      log("You freeze, unable to act.", "danger");
+
+      if (freezeCount >= 2) {
+        alive = false;
+        trialActive = false;
+        log("You have frozen. Reflexia has consumed you.", "danger");
+        return;
+      }
+    }
+    callback();
+  }, 2000);
+}
+
+/* ---------- MIRROR ---------- */
+function mirrorChoice() {
+  document.getElementById("mirrorOverlay").style.display = "flex";
+}
+
+function mirrorAnswer(leave) {
+  document.getElementById("mirrorOverlay").style.display = "none";
+
+  if (leave) {
+    log("Phase 3 complete.", "phase");
+    log("Trial complete. You are free.", "safe");
+  } else {
+    log("Reflexia has consumed you.", "danger");
+    log("The world of classic conditioning awaits.", "danger");
+    log("Trial end.", "danger");
+  }
+
+  mirrorUnlocked = false;
+}
+
+/* ---------- FAILURE ---------- */
+function fail(msg) {
+  alive = false;
+  trialActive = false;
+  log(msg, "danger");
+  log("Trial Failed.", "danger");
+}
+
+/* ========================================================== ENDLESS MODE ========================================================== */
+let endlessMode = false;
+let endlessScore = 0;
+let grabPressed = false;
+let dodgePressed = false;
+
+let scoreDisplay = document.createElement("p");
+scoreDisplay.id = "endlessScoreDisplay";
+scoreDisplay.style.fontWeight = "bold";
+scoreDisplay.style.color = "#4cff9f";
+scoreDisplay.style.marginTop = "10px";
+scoreDisplay.textContent = "";
+
+document.getElementById("game").insertBefore(
+  scoreDisplay,
+  document.getElementById("log")
+);
+
+document.addEventListener("keydown", function(e) {
+  if (!endlessMode || !trialActive) return;
+  const key = e.key.toLowerCase();
+
+  if (key === "g") {
+    grabPressed = true;
+    responded = true;
+    log("You grab onto the canyon vines.", "neutral");
+  }
+
+  if (key === "d") {
+    dodgePressed = true;
+    responded = true;
+    log("You dodge aside.", "neutral");
+  }
+});
+
+const originalMirrorAnswer = mirrorAnswer;
+mirrorAnswer = function(leave) {
+  originalMirrorAnswer(leave);
+  if (!leave) {
+    setTimeout(() => {
+      startEndlessMode();
+    }, 1500);
+  }
+};
+
+function startEndlessMode() {
+  endlessMode = true;
+  alive = true;
+  trialActive = true;
+  endlessScore = 0;
+
+  const header = document.querySelector("#game p strong");
+  header.textContent = "H = Hide R = Run G = Grab D = Dodge I = Interact";
+
+  scoreDisplay.textContent = "Endless Score: 0";
+
+  log("The endless phase begins.", "phase");
+  log("There is no escape now.", "danger");
+
+  runEndlessRound();
+}
+
+function runEndlessRound() {
+  if (!alive || !endlessMode) return;
+
+  hiding = false;
+  running = false;
+  responded = false;
+  grabPressed = false;
+  dodgePressed = false;
+
+  setTimeout(() => {
+    const rand = Math.random();
+    let stimulus;
+
+    if (rand < 0.25) stimulus = "bell";
+    else if (rand < 0.5) stimulus = "howl";
+    else if (rand < 0.75) stimulus = "wind";
+    else stimulus = "stone";
+
+    if (stimulus === "bell") log("🔔 The bell echoes again...", "neutral");
+    if (stimulus === "howl") log("🐺 A howl tears through the canyon...", "neutral");
+    if (stimulus === "wind") log("🌬️ The wind starts to pick up...", "neutral");
+    if (stimulus === "stone") log("🗿 There's a distant rumbling sound...", "neutral");
+
+    setTimeout(() => {
+      let survived = false;
+
+      if (stimulus === "bell" && hiding) {
+        survived = true;
+        log("Arrows fall but you're safe.", "safe");
+      }
+
+      if (stimulus === "howl" && running) {
+        survived = true;
+        log("You outran the creature lurking in the shadows.", "safe");
+      }
+
+      if (stimulus === "wind" && grabPressed) {
+        survived = true;
+        log("You weren't blown away by the wind because you grabbed onto nearby vines.", "safe");
+      }
+
+      if (stimulus === "stone" && dodgePressed) {
+        survived = true;
+        log("An avalanche of rocks falls but you got out in time.", "safe");
+      }
+
+      if (!survived) {
+        if (stimulus === "bell")
+          fail("You fail to hide in time. Arrows strike from above.");
+        else if (stimulus === "howl")
+          fail("You fail to run in time. The creature finds you.");
+        else if (stimulus === "wind")
+          fail("You fail to grab the vines. The wind sweeps you away.");
+        else if (stimulus === "stone")
+          fail("You fail to dodge. The avalanche crushes you.");
+
+        endlessMode = false;
+        return;
+      }
+
+      endlessScore++;
+      scoreDisplay.textContent = "Endless Score: " + endlessScore;
+
+      runEndlessRound();
+    }, 2000);
+  }, 1000);
+}
+
+/* ---------- Endless Auto Restart ---------- */
+const originalFailFunction = fail;
+fail = function(msg) {
+  const wasEndless = endlessMode;
+  originalFailFunction(msg);
+
+  if (wasEndless) {
+    setTimeout(() => {
+      endlessMode = true;
+      alive = true;
+      trialActive = true;
+      endlessScore = 0;
+      scoreDisplay.textContent = "Endless Score: 0";
+      log("The endless phase begins.", "phase");
+      log("There is no escape now.", "danger");
+      runEndlessRound();
+    }, 1500);
+  }
+};
+</script>
+
+</body>
+</html>
